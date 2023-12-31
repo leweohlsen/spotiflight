@@ -22,9 +22,34 @@ function createRenderer() {
     return renderer;
 }
 
+// Custom shader material
+const vertexShader = `
+    varying vec3 vNormal;
+
+    void main() {
+        vNormal = normalMatrix * normal;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+const fragmentShader = `
+    varying vec3 vNormal;
+
+    void main() {
+        vec3 lightDirection = normalize(vec3(0.5, 0.5, -1.0)); // Adjust the light direction as needed
+        float brightness = max(dot(vNormal, lightDirection), 0.1);
+
+        gl_FragColor = vec4(vec3(0.0, 1.0, 0.0) * brightness, 1.0); // Green color, adjust as needed
+    }
+`;
+
 function addSpaceshipToScene(scene) {
     const geometry = new THREE.BoxGeometry(1, 1, 3);
-    const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+    const material = new THREE.ShaderMaterial({
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+    });
+
     spaceship = new THREE.Mesh(geometry, material);
     spaceship.speed = 0;
 
@@ -48,15 +73,45 @@ function addLightsToScene(scene) {
     scene.add(ambientLight);
 }
 
+const loader = new THREE.TextureLoader();
+const textureFlare0 = loader.load("path_to_your_texture_image");
+
 function addStarToScene(scene, x, y, z) {
     // Generate a random size for the star within the range of 0.1 to 1.5
     const minSize = 0.1;
     const maxSize = 3.5;
     const size = Math.random() * (maxSize - minSize) + minSize;
 
-    // Create a star mesh with a sphere geometry and a basic material
+    // Create a custom shader material for the star
+    const starMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            color1: { value: new THREE.Color(Math.random(), Math.random(), Math.random()) },
+            color2: { value: new THREE.Color(0, 0, 0) }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 color1;
+            uniform vec3 color2;
+
+            varying vec2 vUv;
+
+            void main() {
+                float r = length(vUv - vec2(0.5));
+                vec3 color = mix(color1, color2, smoothstep(0.0, 1.0, r));
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `
+    });
+
+    // Create a star mesh with a sphere geometry
     const starGeometry = new THREE.SphereGeometry(size, 24, 24);
-    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffe5 });
     const star = new THREE.Mesh(starGeometry, starMaterial);
 
     // Set the position of the star
@@ -66,8 +121,14 @@ function addStarToScene(scene, x, y, z) {
     const brightness = size * 10;
 
     // Create a point light at the position of the star to simulate a glow effect
-    const starLight = new THREE.PointLight(0xffffe5, brightness, size * 10); // The range of the light is also proportional to the size of the star
+    const starLight = new THREE.PointLight(0xffffe5, brightness, size * 10); 
     starLight.position.set(x, y, z);
+    
+    // Add lens flare
+    var flareColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+    var lensFlare = new THREE.LensFlare(textureFlare0, 700, 0.0, THREE.AdditiveBlending, flareColor);
+
+    starLight.add(lensFlare);
 
     // Add the star and its light to the scene
     scene.add(star);
