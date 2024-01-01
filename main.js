@@ -1,20 +1,31 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 
 import genrePoints from './points.json';
 
+const movementSpeed = 5;
+
 // Set up Three.js scene
 const scene = new THREE.Scene();
+const clock = new THREE.Clock();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Add a camera control
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new PointerLockControls(camera, document.body);
+document.addEventListener('click', () => controls.lock());
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'Space') {
+        controls.moveForward(1);
+    }
+});
+scene.add(controls.getObject());
 
 // Create shader material
 const vertexShader = `
@@ -118,8 +129,13 @@ bloomComposer.addPass(bloomPass);
 function animate() {
     requestAnimationFrame(animate);
 
-    // Update controls
-    controls.update();
+    // Calculate delta time
+    const delta = clock.getDelta();
+
+    // Move the camera forward
+    const moveDistance = movementSpeed * delta;
+    const moveVector = new THREE.Vector3(0, 0, -moveDistance);
+    controls.getObject().translateOnAxis(moveVector, 1);
 
     // Render the original scene
     renderer.render(scene, camera);
@@ -129,13 +145,14 @@ function animate() {
 
     // Find the closest point to the camera
     const cameraPosition = new THREE.Vector3();
-    camera.getWorldPosition(cameraPosition);
+    controls.getObject().getWorldPosition(cameraPosition);
 
     const closestPoint = findClosestPoint(cameraPosition);
 
     // Log the name of the closest point
     console.log("Closest Point:", closestPoint.name);
 }
+
 
 // Function to find the closest point
 function findClosestPoint(cameraPosition) {
