@@ -27,56 +27,68 @@ document.addEventListener('keydown', (event) => {
 });
 scene.add(controls.getObject());
 
-// Create shader material
 const vertexShader = `
+  attribute vec3 color;
+  attribute float size;
+
   varying vec3 vColor;
+  varying float vSize;
+
   void main() {
     vColor = color;
+    vSize = size;
+
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 const fragmentShader = `
 varying vec3 vColor;
-uniform vec3 randomCoords;  // Uniform for random coordinates
+varying float vSize;
 
 void main() {
-    // Calculate lighting based on the distance from the camera
-    vec3 lightDir = normalize(cameraPosition - gl_FragCoord.xyz);
-    float diffuse = max(dot(normalize(vColor), lightDir), 0.2); // Adjust the 0.2 factor to control the intensity
+    float pointRadius = vSize / 2.0;
+    float pointAlpha = smoothstep(0.0, pointRadius, length(gl_PointCoord - vec2(0.5)));
 
-    // Emit a random color using the uniform randomCoords
-    vec3 randomColor = vec3(fract(sin(dot(gl_FragCoord.xyz + randomCoords, vec3(12.9898, 78.233, 45.543))) * 43758.5453));
+    // Rest of the existing code...
 
-    // Final color with lighting and random color
-    vec3 finalColor = vColor * diffuse + randomColor;
+    if (pointAlpha < 0.01) discard;
 
-    gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(finalColor, pointAlpha);
 }
 `;
 
 const material = new THREE.ShaderMaterial({
-    uniforms: {},
+    uniforms: {
+        // ... existing uniforms
+    },
     vertexShader,
     fragmentShader,
     side: THREE.DoubleSide,
-    vertexColors: true, // Enable vertex colors
+    vertexColors: true,
+    attributes: {
+        color: { type: 'v3', value: [] },
+        size: { type: 'f', value: [] },
+    },
 });
+
+// Pass the size and color attributes to the shader
+material.onBeforeCompile = (shader) => {
+    shader.uniforms.size = { value: sizes }; // Pass the size uniform to the shader
+};
 
 // Create a geometry with randomly distributed points
 const numPoints = genrePoints.length;
 const geometry = new THREE.BufferGeometry();
 const positions = new Float32Array(numPoints * 3);
 const colors = new Float32Array(numPoints * 3);
-
-// Additional point properties
-const pointData = [];
+const sizes = new Float32Array(numPoints);
 
 const spread = 10;
 
 // genrepoint looks like {coordinates:[12.31, 4.10, 1.21], name: "Rock"}
 
-genrePoints.forEach((point, i) => {
+genrePoints.map(p => ({ ...p, size: Math.random() })).forEach((point, i) => {
     const x = point.coordinates[0] * spread;
     const y = point.coordinates[1] * spread;
     const z = point.coordinates[2] * spread;
@@ -85,22 +97,21 @@ genrePoints.forEach((point, i) => {
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    const name = `Point ${i}`;
-    const coordinates = new THREE.Vector3(x, y, z);
-    const color = new THREE.Color(0.2, Math.random(), Math.random());
-    const brightness = Math.random();
-    const size = 0.2;
+    const color = new THREE.Color(Math.random(), Math.random(), Math.random());
 
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
+
+    sizes[i] = point.size;
 });
 
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
 // Create points and add to the scene
-const pointsMaterial = new THREE.PointsMaterial({ size: 0.2, vertexColors: true });
+const pointsMaterial = new THREE.PointsMaterial({ size: 0.4, vertexColors: true });
 const points = new THREE.Points(geometry, pointsMaterial);
 scene.add(points);
 
@@ -110,7 +121,7 @@ glowGeometry.setAttribute('position', geometry.getAttribute('position'));
 glowGeometry.setAttribute('color', geometry.getAttribute('color'));
 
 // Create a larger mesh for glowing effect
-const glowMaterial = new THREE.PointsMaterial({ size: 0.4, color: 0xffffff, sizeAttenuation: false });
+const glowMaterial = new THREE.PointsMaterial({ size: 1, color: 0x00ffff, sizeAttenuation: false });
 const glowPoints = new THREE.Points(glowGeometry, glowMaterial);
 scene.add(glowPoints);
 
