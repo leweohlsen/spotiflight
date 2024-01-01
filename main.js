@@ -63,6 +63,8 @@ const pointData = [];
 
 const spread = 10;
 
+// genrepoint looks like {coordinates:[12.31, 4.10, 1.21], name: "Rock"}
+
 genrePoints.forEach((point, i) => {
     const x = point.coordinates[0] * spread;
     const y = point.coordinates[1] * spread;
@@ -124,6 +126,33 @@ function animate() {
 
     // Render the scene with glow effect
     bloomComposer.render();
+
+    // Find the closest point to the camera
+    const cameraPosition = new THREE.Vector3();
+    camera.getWorldPosition(cameraPosition);
+
+    const closestPoint = findClosestPoint(cameraPosition);
+
+    // Log the name of the closest point
+    console.log("Closest Point:", closestPoint.name);
+}
+
+// Function to find the closest point
+function findClosestPoint(cameraPosition) {
+    let closestDistance = Infinity;
+    let closestPoint = null;
+
+    genrePoints.forEach((point, i) => {
+        const pointPosition = new THREE.Vector3(point.coordinates[0] * spread, point.coordinates[1] * spread, point.coordinates[2] * spread);
+        const distance = cameraPosition.distanceTo(pointPosition);
+
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPoint = { name: point.name, distance };
+        }
+    });
+
+    return closestPoint;
 }
 
 // Start the game
