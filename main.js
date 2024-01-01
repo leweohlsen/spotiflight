@@ -4,6 +4,8 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 
+import genrePoints from './points.json';
+
 // Set up Three.js scene
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -44,31 +46,42 @@ void main() {
 
 const material = new THREE.ShaderMaterial({
     uniforms: {},
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
+    vertexShader,
+    fragmentShader,
     side: THREE.DoubleSide,
     vertexColors: true, // Enable vertex colors
 });
 
 // Create a geometry with randomly distributed points
-const numPoints = 400;
+const numPoints = genrePoints.length;
 const geometry = new THREE.BufferGeometry();
 const positions = new Float32Array(numPoints * 3);
 const colors = new Float32Array(numPoints * 3);
 
-for (let i = 0; i < numPoints; i++) {
-    const x = (Math.random() - 0.5) * 20;
-    const y = (Math.random() - 0.5) * 20;
-    const z = (Math.random() - 0.5) * 20;
+// Additional point properties
+const pointData = [];
+
+const spread = 10;
+
+genrePoints.forEach((point, i) => {
+    const x = point.coordinates[0] * spread;
+    const y = point.coordinates[1] * spread;
+    const z = point.coordinates[2] * spread;
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    colors[i * 3] = Math.random();
-    colors[i * 3 + 1] = Math.random();
-    colors[i * 3 + 2] = Math.random();
-}
+    const name = `Point ${i}`;
+    const coordinates = new THREE.Vector3(x, y, z);
+    const color = new THREE.Color(0.2, Math.random(), Math.random());
+    const brightness = Math.random();
+    const size = 0.2;
+
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+});
 
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -90,7 +103,7 @@ scene.add(glowPoints);
 
 // Add glow effect
 const renderScene = new RenderPass(scene, camera);
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2, 1, 0.1); // Increased strength
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2, 1, 0.1);
 bloomPass.threshold = 0;
 bloomPass.strength = 10;
 bloomPass.radius = 1;
@@ -115,7 +128,7 @@ function animate() {
 
 // Start the game
 function startGame() {
-    camera.position.z = 30; // Set initial camera position
+    camera.position.z = 30;
     animate();
 }
 
