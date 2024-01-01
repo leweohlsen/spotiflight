@@ -39,6 +39,7 @@ const vertexShader = `
     vSize = size;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = vSize;  // Set point size directly in the vertex shader
   }
 `;
 
@@ -103,7 +104,7 @@ genrePoints.map(p => ({ ...p, size: Math.random() })).forEach((point, i) => {
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
 
-    sizes[i] = point.size;
+    sizes[i] = point.size * 10;
 });
 
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
