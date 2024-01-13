@@ -5,9 +5,13 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 
-import genrePoints from './points.json';
+import genres from './genres.json';
 
 const movementSpeed = 5;
+
+let previousClosestGenre = undefined;
+let currentPlayingSong = undefined;
+let isMoving = true;
 
 // Set up Three.js scene
 const scene = new THREE.Scene();
@@ -22,7 +26,7 @@ const controls = new PointerLockControls(camera, document.body);
 document.addEventListener('click', () => controls.lock());
 document.addEventListener('keydown', (event) => {
     if (event.code === 'Space') {
-        controls.moveForward(1);
+        isMoving = !isMoving
     }
 });
 scene.add(controls.getObject());
@@ -79,20 +83,26 @@ material.onBeforeCompile = (shader) => {
 };
 
 // Create a geometry with randomly distributed points
-const numPoints = genrePoints.length;
+const numPoints = genres.length;
 const geometry = new THREE.BufferGeometry();
 const positions = new Float32Array(numPoints * 3);
 const colors = new Float32Array(numPoints * 3);
 const sizes = new Float32Array(numPoints);
 
-const spread = 10;
+const spread = 400;
+
+function playSong(url) {
+  const audio = new Audio(url);
+  if (currentPlayingSong) currentPlayingSong.pause();
+  audio.play();
+  return audio;
+}
 
 // genrepoint looks like {coordinates:[12.31, 4.10, 1.21], name: "Rock"}
-
-genrePoints.map(p => ({ ...p, size: Math.random() })).forEach((point, i) => {
-    const x = point.coordinates[0] * spread;
-    const y = point.coordinates[1] * spread;
-    const z = point.coordinates[2] * spread;
+genres.map(p => ({ ...p, size: Math.random() })).forEach((genre, i) => {
+    const x = genre.coordinates[0] * spread;
+    const y = genre.coordinates[1] * spread;
+    const z = genre.coordinates[2] * spread;
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
@@ -104,7 +114,7 @@ genrePoints.map(p => ({ ...p, size: Math.random() })).forEach((point, i) => {
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
 
-    sizes[i] = point.size * 10;
+    sizes[i] = genre.size * 10;
 });
 
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -145,7 +155,7 @@ function animate() {
     const delta = clock.getDelta();
 
     // Move the camera forward
-    const moveDistance = movementSpeed * delta;
+    const moveDistance = isMoving ? movementSpeed * delta : 0;
     const moveVector = new THREE.Vector3(0, 0, -moveDistance);
     controls.getObject().translateOnAxis(moveVector, 1);
 
@@ -159,29 +169,34 @@ function animate() {
     const cameraPosition = new THREE.Vector3();
     controls.getObject().getWorldPosition(cameraPosition);
 
-    const closestPoint = findClosestPoint(cameraPosition);
-
-    // Log the name of the closest point
-    console.log("Closest Point:", closestPoint.name);
+    const closestGenre = findClosestGenre(cameraPosition);
+    if (previousClosestGenre != closestGenre) {
+      // Log the name of the closest point
+      console.log("Closest Genre:", closestGenre.name);
+      // Play Song preview
+      currentPlayingSong = playSong(closestGenre.preview_url)
+      // Set previous closest Genre
+      previousClosestGenre = closestGenre
+    }
 }
 
 
 // Function to find the closest point
-function findClosestPoint(cameraPosition) {
+function findClosestGenre(cameraPosition) {
     let closestDistance = Infinity;
-    let closestPoint = null;
+    let closestGenre = null;
 
-    genrePoints.forEach((point, i) => {
-        const pointPosition = new THREE.Vector3(point.coordinates[0] * spread, point.coordinates[1] * spread, point.coordinates[2] * spread);
+    genres.forEach((genre, i) => {
+        const pointPosition = new THREE.Vector3(genre.coordinates[0] * spread, genre.coordinates[1] * spread, genre.coordinates[2] * spread);
         const distance = cameraPosition.distanceTo(pointPosition);
 
         if (distance < closestDistance) {
             closestDistance = distance;
-            closestPoint = { name: point.name, distance };
+            closestGenre = genre;
         }
     });
 
-    return closestPoint;
+    return closestGenre;
 }
 
 // Start the game
