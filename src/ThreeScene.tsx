@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useContext } from 'react';
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -65,8 +64,6 @@ void main() {
     float pointRadius = vSize / 2.0;
     float pointAlpha = smoothstep(0.0, pointRadius, length(gl_PointCoord - vec2(0.5)));
 
-    // Rest of the existing code...
-
     if (pointAlpha < 0.01) discard;
 
     gl_FragColor = vec4(finalColor, pointAlpha);
@@ -81,10 +78,6 @@ void main() {
             fragmentShader,
             side: THREE.DoubleSide,
             vertexColors: true,
-            attributes: {
-                color: { type: 'v3', value: [] },
-                size: { type: 'f', value: [] },
-            },
         });
 
         // Pass the size and color attributes to the shader
@@ -197,7 +190,7 @@ void main() {
             let closestDistance = Infinity;
             let closestGenre = null;
 
-            genres.forEach((genre: Genre, i) => {
+            genres.forEach((genre: Genre) => {
                 const pointPosition = new THREE.Vector3(genre.coordinates[0] * spread, genre.coordinates[1] * spread, genre.coordinates[2] * spread);
                 const distance = cameraPosition.distanceTo(pointPosition);
 
