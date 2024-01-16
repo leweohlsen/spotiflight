@@ -14,8 +14,6 @@ const ThreeScene: React.FC = () => {
     const hudContext = useContext(HUDContext);
 
     useEffect(() => {
-
-
         const movementSpeed = 5;
 
         let previousClosestGenre: Genre | undefined = undefined;
@@ -39,51 +37,6 @@ const ThreeScene: React.FC = () => {
             }
         });
         scene.add(controls.getObject());
-
-        const vertexShader = `
-  attribute vec3 color;
-  attribute float size;
-
-  varying vec3 vColor;
-  varying float vSize;
-
-  void main() {
-    vColor = color;
-    vSize = size;
-
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = vSize;  // Set point size directly in the vertex shader
-  }
-`;
-
-        const fragmentShader = `
-varying vec3 vColor;
-varying float vSize;
-
-void main() {
-    float pointRadius = vSize / 2.0;
-    float pointAlpha = smoothstep(0.0, pointRadius, length(gl_PointCoord - vec2(0.5)));
-
-    if (pointAlpha < 0.01) discard;
-
-    gl_FragColor = vec4(finalColor, pointAlpha);
-}
-`;
-
-        const material = new THREE.ShaderMaterial({
-            uniforms: {
-                // ... existing uniforms
-            },
-            vertexShader,
-            fragmentShader,
-            side: THREE.DoubleSide,
-            vertexColors: true,
-        });
-
-        // Pass the size and color attributes to the shader
-        material.onBeforeCompile = (shader) => {
-            shader.uniforms.size = { value: sizes }; // Pass the size uniform to the shader
-        };
 
         // Create a geometry with randomly distributed points
         const numPoints = genres.length;
@@ -119,6 +72,7 @@ void main() {
 
             sizes[i] = genre.size * 10;
         });
+
 
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -219,9 +173,7 @@ void main() {
         // Event listeners for window resize
         window.addEventListener('resize', handleResize);
 
-        // Start the game when everything is loaded
-        window.onload = startGame;
-
+        startGame()
 
         // Cleanup on component unmount
         return () => {
