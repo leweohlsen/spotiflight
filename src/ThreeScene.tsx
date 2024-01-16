@@ -15,7 +15,10 @@ const ThreeScene: React.FC = () => {
 
     useEffect(() => {
         const movementSpeed = 5;
+        const acceleration = 3;
+        const friction = 1
 
+        let velocity = new THREE.Vector3()
         let previousClosestGenre: Genre | undefined = undefined;
         let currentPlayingSong: HTMLAudioElement | undefined = undefined;
         let isMoving = true;
@@ -33,7 +36,7 @@ const ThreeScene: React.FC = () => {
         document.addEventListener('click', () => controls.lock());
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
-                isMoving = !isMoving
+                velocity.z -= acceleration;
             }
         });
         scene.add(controls.getObject());
@@ -95,14 +98,16 @@ const ThreeScene: React.FC = () => {
 
         // Add glow effect
         const renderScene = new RenderPass(scene, camera);
+
+        // Configure bloom
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2, 1, 0.1);
         bloomPass.threshold = 0;
         bloomPass.strength = 10;
         bloomPass.radius = 1;
 
-        const bloomComposer = new EffectComposer(renderer);
-        bloomComposer.addPass(renderScene);
-        bloomComposer.addPass(bloomPass);
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
 
         // Render loop
         function animate() {
@@ -111,16 +116,15 @@ const ThreeScene: React.FC = () => {
             // Calculate delta time
             const delta = clock.getDelta();
 
-            // Move the camera forward
-            const moveDistance = isMoving ? movementSpeed * delta : 0;
-            const moveVector = new THREE.Vector3(0, 0, -moveDistance);
-            controls.getObject().translateOnAxis(moveVector, 1);
+            // Move the camera forward based on velocity
+            velocity.multiplyScalar(1 - friction * delta);  // Decrease velocity (simulate friction)
+            controls.getObject().translateOnAxis(velocity, delta);  // Move camera
 
             // Render the original scene
             renderer.render(scene, camera);
 
             // Render the scene with glow effect
-            bloomComposer.render();
+            composer.render();
 
             // Find the closest point to the camera
             const cameraPosition = new THREE.Vector3();
@@ -167,7 +171,7 @@ const ThreeScene: React.FC = () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            bloomComposer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
         };
 
         // Event listeners for window resize
