@@ -14,14 +14,12 @@ const ThreeScene: React.FC = () => {
     const hudContext = useContext(HUDContext);
 
     useEffect(() => {
-        const movementSpeed = 5;
         const acceleration = 3;
         const friction = 1
 
         let velocity = new THREE.Vector3()
         let previousClosestGenre: Genre | undefined = undefined;
         let currentPlayingSong: HTMLAudioElement | undefined = undefined;
-        let isMoving = true;
 
         // Set up Three.js scene
         const scene = new THREE.Scene();
