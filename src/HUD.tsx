@@ -19,7 +19,7 @@ const HUD: React.FC = () => {
                     v{version}
                 </div>
             </div>
-            <FPSStats top="auto" right="auto" bottom={10} left={10}/>
+            <FPSStats top="auto" right="auto" bottom={10} left={10} />
         </>
     );
 };
