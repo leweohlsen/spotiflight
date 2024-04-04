@@ -39,13 +39,14 @@ const ThreeScene: React.FC = () => {
         });
         scene.add(controls.getObject());
 
-        // Create a geometry with randomly distributed points
+        // Initialize buffers
         const numPoints = genres.length;
         const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array(numPoints * 3);
         const colors = new Float32Array(numPoints * 3);
         const sizes = new Float32Array(numPoints);
 
+        // Size of the star field
         const spread = 400;
 
         function playSong(url: string) {
@@ -55,7 +56,7 @@ const ThreeScene: React.FC = () => {
             return audio;
         }
 
-        // genrepoint looks like {coordinates:[12.31, 4.10, 1.21], name: "Rock"}
+        // Load the genres.json into respective buffers
         genres.map(p => ({ ...p, size: Math.random() })).forEach((genre, i) => {
             const x = genre.coordinates[0] * spread;
             const y = genre.coordinates[1] * spread;
