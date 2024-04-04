@@ -17,7 +17,7 @@ const ThreeScene: React.FC = () => {
         const spread = 400; // Size of the star field
         const acceleration = 3;
         const friction = 1
-        const gravity = 0.1;
+        const gravity = 0.02;
 
         let velocity = new THREE.Vector3()
         let previousClosestGenre: Genre | undefined = undefined;
@@ -31,7 +31,7 @@ const ThreeScene: React.FC = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         sceneRef.current?.appendChild(renderer.domElement);
 
-        // Add a camera control
+        // Add a camera controls
         const controls = new PointerLockControls(camera, document.body);
         document.addEventListener('click', () => controls.lock());
         document.addEventListener('keydown', (event) => {
@@ -87,7 +87,7 @@ const ThreeScene: React.FC = () => {
         // Create a separate geometry for the glow effect
         const glowGeometry = new THREE.BufferGeometry();
         glowGeometry.setAttribute('position', geometry.getAttribute('position'));
-        glowGeometry.setAttribute('color', geometry.getAttribute('color'));
+        // glowGeometry.setAttribute('color', geometry.getAttribute('color'));
 
         // Create a larger mesh for glowing effect
         const glowMaterial = new THREE.PointsMaterial({ size: 1, color: 0x00ffff, sizeAttenuation: false });
