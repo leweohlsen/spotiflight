@@ -14,8 +14,10 @@ const ThreeScene: React.FC = () => {
     const hudContext = useContext(HUDContext);
 
     useEffect(() => {
+        const spread = 400; // Size of the star field
         const acceleration = 3;
         const friction = 1
+        const gravity = 0.1;
 
         let velocity = new THREE.Vector3()
         let previousClosestGenre: Genre | undefined = undefined;
@@ -45,9 +47,6 @@ const ThreeScene: React.FC = () => {
         const positions = new Float32Array(numPoints * 3);
         const colors = new Float32Array(numPoints * 3);
         const sizes = new Float32Array(numPoints);
-
-        // Size of the star field
-        const spread = 400;
 
         function playSong(url: string) {
             const audio = new Audio(url);
@@ -111,35 +110,49 @@ const ThreeScene: React.FC = () => {
         // Render loop
         function animate() {
             requestAnimationFrame(animate);
-
+        
             // Calculate delta time
             const delta = clock.getDelta();
-
-            // Move the camera forward based on velocity
-            velocity.multiplyScalar(1 - friction * delta);  // Decrease velocity (simulate friction)
-            controls.getObject().translateOnAxis(velocity, delta);  // Move camera
-
-            // Render the original scene
-            renderer.render(scene, camera);
-
-            // Render the scene with glow effect
-            composer.render();
-
+        
             // Find the closest point to the camera
             const cameraPosition = new THREE.Vector3();
             controls.getObject().getWorldPosition(cameraPosition);
-
+        
             const closestGenre = findClosestGenre(cameraPosition);
-            if (closestGenre && previousClosestGenre != closestGenre) {
-                // Log the name of the closest point
-                console.log("Closest Genre:", closestGenre.name);
-                hudContext?.setClosestGenre(closestGenre.name);
-                // Play Song preview
-                currentPlayingSong = playSong(closestGenre.preview_url)
-                // Set previous closest Genre
-                previousClosestGenre = closestGenre
+            if (closestGenre) {
+                // Apply gravity towards closest genre
+                const directionToGenre = new THREE.Vector3(
+                    closestGenre.coordinates[0] * spread - cameraPosition.x,
+                    closestGenre.coordinates[1] * spread - cameraPosition.y,
+                    closestGenre.coordinates[2] * spread - cameraPosition.z
+                ).normalize();
+        
+                velocity.add(directionToGenre.multiplyScalar(gravity));
+        
+                if (previousClosestGenre !== closestGenre) {
+                    // Log the name of the closest point
+                    console.log("Closest Genre:", closestGenre.name);
+                    hudContext?.setClosestGenre(closestGenre.name);
+        
+                    // Play Song preview if the closest genre has changed
+                    currentPlayingSong = playSong(closestGenre.preview_url)
+        
+                    // Update previous closest genre
+                    previousClosestGenre = closestGenre;
+                }
             }
+        
+            // Move the camera forward based on velocity
+            velocity.multiplyScalar(1 - friction * delta);  // Decrease velocity (simulate friction)
+            controls.getObject().translateOnAxis(velocity, delta);  // Move camera
+        
+            // Render the original scene
+            renderer.render(scene, camera);
+        
+            // Render the scene with glow effect
+            composer.render();
         }
+        
 
 
         // Function to find the closest point
