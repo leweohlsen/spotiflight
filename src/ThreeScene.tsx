@@ -161,7 +161,15 @@ const ThreeScene: React.FC = () => {
 
         // Start the game
         function startGame() {
-            camera.position.z = 30;
+            // Start in a random point in space
+            camera.position.x = Math.random() * spread;
+            camera.position.y = Math.random() * spread;
+            camera.position.z = Math.random() * spread;
+
+            // Point the camera towards the center
+            camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+            // Start animation loop
             animate();
         }
 
