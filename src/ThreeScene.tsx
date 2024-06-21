@@ -11,6 +11,7 @@ const ThreeScene: React.FC = () => {
     const sceneRef = useRef<HTMLDivElement>(null);
     const hudContext = useContext(HUDContext);
     const [isSceneClicked, setIsSceneClicked] = useState(false);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
 
     useEffect(() => {
         const spread = 400; // Size of the star field
@@ -30,14 +31,19 @@ const ThreeScene: React.FC = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         sceneRef.current?.appendChild(renderer.domElement);
 
+        // Detect if the device is a touch device
+        const detectTouchDevice = () => {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        };
+
+        setIsTouchDevice(detectTouchDevice());
+
         // Add camera controls
         const controls = new PointerLockControls(camera, document.body);
-        document.addEventListener('click', () => controls.lock());
-        document.addEventListener('keydown', (event) => {
-            if (event.code === 'Space') {
-                velocity.z -= acceleration;
-            }
-        });
+        if (!isTouchDevice) {
+            document.addEventListener('click', () => controls.lock());
+        }
+
         scene.add(controls.getObject());
 
         // Initialize buffers
@@ -105,6 +111,49 @@ const ThreeScene: React.FC = () => {
         composer.addPass(renderScene);
         composer.addPass(bloomPass);
 
+        // Touch controls
+        let lastTouch: { x: number; y: number } | null = null;
+        let touchVelocity = new THREE.Vector3();
+
+        const handleTouchStart = (event: TouchEvent) => {
+            const touch = event.touches[0];
+            lastTouch = { x: touch.clientX, y: touch.clientY };
+        };
+
+        const handleTouchMove = (event: TouchEvent) => {
+            if (!lastTouch) return;
+
+            const touch = event.touches[0];
+            const deltaX = touch.clientX - lastTouch.x;
+            const deltaY = touch.clientY - lastTouch.y;
+
+            const direction = new THREE.Vector3(deltaX, deltaY, 0).normalize();
+            touchVelocity = direction.multiplyScalar(acceleration);
+
+            lastTouch = { x: touch.clientX, y: touch.clientY };
+        };
+
+        const handleTouchEnd = () => {
+            touchVelocity.set(0, 0, 0);
+        };
+
+        if (isTouchDevice) {
+            document.addEventListener('touchstart', handleTouchStart);
+            document.addEventListener('touchmove', handleTouchMove);
+            document.addEventListener('touchend', handleTouchEnd);
+        }
+
+        // Key controls for acceleration (spacebar)
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.code === 'Space') {
+                velocity.z -= acceleration;
+            }
+        };
+
+        if (!isTouchDevice) {
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
         // Render loop
         function animate() {
             requestAnimationFrame(animate);
@@ -118,13 +167,14 @@ const ThreeScene: React.FC = () => {
 
             const closestGenre = findClosestGenre(cameraPosition);
             if (closestGenre) {
-                // Apply gravity towards closest genre
-                const directionToGenre = new THREE.Vector3(
-                    closestGenre.coordinates[0] * spread - cameraPosition.x,
-                    closestGenre.coordinates[1] * spread - cameraPosition.y,
-                    closestGenre.coordinates[2] * spread - cameraPosition.z
-                ).normalize();
+                // Correct the direction vector towards the closest genre
+                const genrePosition = new THREE.Vector3(
+                    closestGenre.coordinates[0] * spread,
+                    closestGenre.coordinates[1] * spread,
+                    closestGenre.coordinates[2] * spread
+                );
 
+                const directionToGenre = genrePosition.sub(cameraPosition).normalize();
                 velocity.add(directionToGenre.multiplyScalar(gravity));
 
                 if (previousClosestGenre !== closestGenre) {
@@ -141,8 +191,13 @@ const ThreeScene: React.FC = () => {
             }
 
             // Move the camera forward based on velocity
-            velocity.multiplyScalar(1 - friction * delta);  // Decrease velocity (simulate friction)
-            controls.getObject().translateOnAxis(velocity, delta);  // Move camera
+            velocity.multiplyScalar(1 - friction * delta); // Decrease velocity (simulate friction)
+            controls.getObject().translateOnAxis(velocity, delta); // Move camera
+
+            // Apply touch velocity if on a touch device
+            if (isTouchDevice) {
+                controls.getObject().translateOnAxis(touchVelocity, delta);
+            }
 
             // Render the original scene
             renderer.render(scene, camera);
@@ -157,7 +212,11 @@ const ThreeScene: React.FC = () => {
             let closestGenre = null;
 
             genres.forEach((genre: Genre) => {
-                const pointPosition = new THREE.Vector3(genre.coordinates[0] * spread, genre.coordinates[1] * spread, genre.coordinates[2] * spread);
+                const pointPosition = new THREE.Vector3(
+                    genre.coordinates[0] * spread,
+                    genre.coordinates[1] * spread,
+                    genre.coordinates[2] * spread
+                );
                 const distance = cameraPosition.distanceTo(pointPosition);
 
                 if (distance < closestDistance) {
@@ -208,8 +267,18 @@ const ThreeScene: React.FC = () => {
             window.removeEventListener('resize', handleResize);
             sceneRef.current?.removeEventListener('click', handleSceneClick);
             sceneRef.current?.removeChild(renderer.domElement);
+
+            if (isTouchDevice) {
+                document.removeEventListener('touchstart', handleTouchStart);
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd);
+            }
+
+            if (!isTouchDevice) {
+                document.removeEventListener('keydown', handleKeyDown);
+            }
         };
-    }, [isSceneClicked]); // Add isSceneClicked as a dependency
+    }, [isSceneClicked, isTouchDevice]); // Add isSceneClicked and isTouchDevice as dependencies
 
     return <div ref={sceneRef} style={{ width: '100%', height: '100%' }} />;
 };
