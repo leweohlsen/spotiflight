@@ -2,6 +2,10 @@
 import * as THREE from 'three';
 import { useEffect, useRef } from 'react';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// Post-processing imports for bloom effect
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import genresData from '../data/positioned_genres_final.json'; // Import preprocessed JSON
 
@@ -101,12 +105,25 @@ const SolarSystemScene = () => {
         }
 
         console.log(`✅ Created ${count} planet instances`);
+        // Setup post-processing bloom
+        const composer = new EffectComposer(renderer);
+        // Render scene normally
+        composer.addPass(new RenderPass(scene, camera));
+        // Add bloom pass: threshold, strength, radius
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.5, // strength
+            0.4, // radius
+            0.85 // threshold
+        );
+        composer.addPass(bloomPass);
 
         const animate = () => {
             requestAnimationFrame(animate);
 
             controls.update();
-            renderer.render(scene, camera);
+            // Render with bloom composer
+            composer.render();
         };
         animate();
 
@@ -114,6 +131,8 @@ const SolarSystemScene = () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            // update composer on resize
+            composer.setSize(window.innerWidth, window.innerHeight);
         };
         window.addEventListener('resize', handleResize);
 
