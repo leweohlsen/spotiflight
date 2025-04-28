@@ -10,6 +10,16 @@ npm i
 npm start
 ```
 
+## Generating genre positions
+
+To generate the JSON file used by SolarSystemScene, run:
+
+```bash
+npm run generate-data
+```
+
+This will execute the Python scripts in `scripts/` and produce `data/positioned_genres_final.json`, which the app imports for visualization.
+
 ## Research subjects
 1. *Gameplay and Graphics*: [Three.js](https://threejs.org) is used as a 3D engine. Rendering the spaceship will be taken care of later on. For now, there's only a camera that is controlled through 3D space. Genres should be represented as illuminated spheres in different colors. When the camera is facing a genre sphere and is nearby, the Spotify Web Playback SDK should be used to obtain the first song of the playlist of the respective genre.
 2. *Genre similarity*: maybe use song attributes to generate genre vectors or use nlp to identify and organize similar genres close to one another

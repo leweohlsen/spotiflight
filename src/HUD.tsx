@@ -3,7 +3,12 @@ import { HUDContext } from './HUDContext';
 import { version } from '../package.json';
 import FPSStats from "react-fps-stats";
 
-const HUD: React.FC = () => {
+// Props for HUD: include scene selector
+interface HUDProps {
+  sceneType: 'three' | 'solar';
+  setSceneType: (scene: 'three' | 'solar') => void;
+}
+const HUD: React.FC<HUDProps> = ({ sceneType, setSceneType }) => {
     const hudContext = useContext(HUDContext);
 
     return (
@@ -15,9 +20,26 @@ const HUD: React.FC = () => {
                     position: 'fixed',
                     right: 0,
                     bottom: 0,
-                    margin: '10px'
+                    margin: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                 }}>
-                    v{version}
+                    <span>v{version}</span>
+                    <select
+                        value={sceneType}
+                        onChange={e => setSceneType(e.target.value as 'three' | 'solar')}
+                        style={{
+                            background: 'rgba(0,0,0,0.5)',
+                            color: 'white',
+                            border: '1px solid white',
+                            borderRadius: '4px',
+                            padding: '2px 4px'
+                        }}
+                    >
+                        <option value="three">ThreeScene</option>
+                        <option value="solar">SolarSystemScene</option>
+                    </select>
                 </div>
             </div>
             {/* Top Right */}
